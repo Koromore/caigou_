@@ -541,10 +541,11 @@ export default {
           // 发送删除请求
           this.$axios
             .post(
-              '/pms//insunSupplierRegisterInfo/delFileByPath'
+              '/pms/insunSupplierRegisterInfo/delFileByType'
               + '?filePath=' + filePath
               + '&phone=' + phone
               + '&version=' + version
+              + '&fileType=businessLicense'
             )
             .then(this.deleDialogSuss)
         })
@@ -715,8 +716,7 @@ export default {
 }
 /* 联系人列表样式 end */
 /* 资质文件样式start */
-#corporation_update .certificates .certificates_list{
-  height: 54px;
+#corporation_update .certificates_list{
   padding: 0;
 }
 #corporation_update .certificates_list>div{

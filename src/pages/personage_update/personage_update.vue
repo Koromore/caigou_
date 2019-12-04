@@ -465,10 +465,11 @@ export default {
           // 发送删除请求
           this.$axios
             .post(
-              '/pms//insunSupplierRegisterInfo/delFileByPath'
+              '/pms/insunSupplierRegisterInfo/delFileByType'
               + '?filePath=' + filePath
               + '&phone=' + phone
               + '&version=' + version
+              + '&fileType=idCardFront'
             )
             .then(this.deleDialogSuss)
         })
@@ -627,7 +628,6 @@ export default {
 /* 证件显示样式end */
 /* 资质文件样式start */
 #personage_update .certificates_list{
-  height: 54px;
   padding: 0;
 }
 #personage_update .certificates_list>div{
