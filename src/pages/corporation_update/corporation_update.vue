@@ -38,7 +38,6 @@
             filterable
             @change="handleChangeCity"
             placeholder="请选择办公地区"
-            :value="test"
           ></el-cascader>
         </el-col>
         <el-col :span="10" class="content_text">
@@ -56,9 +55,13 @@
           <div>公司电话：</div>
           <el-input v-model="companyTel" placeholder="请输入公司电话" clearable></el-input>
         </el-col>
-        <!-- 营业执照：上传start -->
+        <!-- 营业执照上传start -->
         <el-col :span="10" class="content_text">
           <div>营业执照：</div>
+          <div v-show="dialogImageShow" class="dialog">
+            <img :src="dialogImageUrl" alt="" srcset="" width="148" height="148">
+            <i class="el-icon-delete dialog_del" @click="deleDialog"></i>
+          </div>
           <el-upload
             :action="uploadApi"
             list-type="picture-card"
@@ -69,11 +72,13 @@
           >
             <i class="el-icon-plus"></i>
           </el-upload>
+          <!-- 上传图片预览start -->
           <el-dialog :visible.sync="dialogVisible">
             <img width="100%" :src="dialogImageUrl" alt="">
           </el-dialog>
+          <!-- 上传图片预览end -->
         </el-col>
-        <!-- 营业执照：上传end -->
+        <!-- 营业执照上传end -->
       </el-row>
       <!-- 基本信息end -->
       <!-- 服务信息start -->
@@ -83,13 +88,11 @@
           <span>*</span>
           <div style="width: 7%;">服务类型：</div>
           <el-input type="textarea" :rows="3" placeholder="请填写公司许可的服务类型" v-model="serviceType"></el-input>
-          <!-- <span style="width: 93%;">{{service}}</span> -->
         </el-col>
         <el-col :span="24" class="content_text">
           <span>*</span>
           <div>服务客户：</div>
           <el-input v-model="serviceCustomer" placeholder="请填写服务过的客户名称" clearable></el-input>
-          <!-- <span>{{client}}</span> -->
         </el-col>
       </el-row>
       <!-- 服务信息end -->
@@ -127,7 +130,7 @@
         <el-col :span="12" class="content_text">
           <span>*</span>
           <div>开户行名称：</div>
-          <el-input v-model="invoiceBankName" placeholder="请输入开户行名称" clearable></el-input>
+          <el-input v-model="invoiceAccount" placeholder="请输入开户行名称" clearable></el-input>
         </el-col>
         <el-col :span="12" class="content_text">
           <span>*</span>
@@ -172,7 +175,7 @@
       </el-row>
       <!-- 银行信息end -->
       <!-- 资质信息start -->
-      <el-row>
+      <el-row class="certificates">
         <el-col :span="24" class="content_title">资质信息</el-col>
         <el-col :span="24" class="content_text">
           <div>上传附件：</div>
@@ -182,14 +185,23 @@
             :action="uploadApi"
             multiple
             :on-success="domUploadSuccess"
+            :on-remove="domUploadRemove"
           >
             <i class="el-icon-upload"></i>
             <div class="el-upload__text">
               将文件拖到此处，或
               <em>点击上传</em>
             </div>
-            <div class="el-upload__tip" slot="tip">支持扩展名：.rar .zip .doc .docx .pdf .jpg...不超过500kb</div>
+            <div class="el-upload__tip" slot="tip">支持扩展名：.rar .zip .doc .docx .pdf .jpg...</div>
           </el-upload>
+          <!-- 已上传资质文件start -->
+          <el-col class="certificates_list" :span="24">
+            <div v-for="item in odleSupplierRegisterFileList" :key="item.index">
+              <a href="javascript:;"><i class="el-icon-document"></i>{{item.fileName}}</a>
+              <i class="el-icon-close" @click="deleFile(item.filePath)"></i>
+            </div>
+          </el-col>
+          <!-- 已上传资质文件end -->
         </el-col>
         <el-col :span="24" style="height:54px;"></el-col>
         <el-col :span="2" class="but" :offset="10">
@@ -211,10 +223,11 @@ export default {
   components: {},
   data() {
     return {
-      test:'',
+      test: true,
       time: '',
       // 上传API
       uploadApi: '', //
+      version: '', // 信息版本
       // 信息填写
       // 基本信息
       companyName: '', // 企业名称
@@ -225,6 +238,11 @@ export default {
       companyLegal: '', // 公司法人
       companyTime: '', // 成立时间
       companyTel: '', // 公司电话
+      // 营业执照上传
+      dialogImageUrl: '', // 营业执照路径用于上传是显示
+      dialogVisible: false,
+      id_img_show: false, // 是否禁用营业执照上传功能
+      businessLicense: '', // 营业执照图片名称
       businessLicensePath: '', // 企业工商执照附件上传后的路径
       // 服务信息
       serviceType: '', // 服务类型
@@ -245,7 +263,7 @@ export default {
         }
       ],
       // 开票信息
-      invoiceBankName: '', // 开户行名称
+      invoiceAccount: '', // 发票单号/开票信息银行名称
       invoiceBank: '', // 开票信息银行卡号
       invoiceReceiveUser: '', // 收件人
       invoiceReceiveAddr: '', // 收件地址
@@ -254,19 +272,16 @@ export default {
       bankAddrInfo: '', // 银行地址
       bankName: '', // 银行名称
       bankAccount: '', // 银行卡号
-      // 营业执照上传
-      dialogImageUrl: '',
-      dialogVisible: false,
-      businessLicense: '',
+      
       //资质信息start
       // 其他附件上传 列表显示
       fileList: [],
       supplierRegisterFileList: [], // 其他附件列表
+      odleSupplierRegisterFileList: [],
+      isAutoplay: '',
       // 城市选择器数据
       options: cities,
-      // 缓存账号
-      scissionid: '',
-      id_img_show: false // 是否显示上传组件
+      dialogImageShow: false // 是否显示营业执照
     }
   },
   // 方法
@@ -274,14 +289,17 @@ export default {
     // 获取存于vue-x中的登陆手机号
     locals() {
       this.uploadApi =
-        '/pms/insunSupplierFileupload/upload' + '?phone=' + this.$store.state.phone
+        '/pms/insunSupplierFileupload/upload'
+        + '?phone=' + this.$store.state.phone
     },
+
     // 获取供应商信息 start
     getSupplierInfo() {
       let phone = this.$store.state.phone
       this.$axios
         .post(
-          '/pms/insunSupplierRegisterInfo/getSupplierInfo' + '?phone=' + phone
+          '/pms/insunSupplierRegisterInfo/getSupplierInfo'
+          + '?phone=' + phone
         )
         .then(this.getSupplierInfoSuss)
     },
@@ -290,16 +308,33 @@ export default {
       let data = res.data
       if (data.errorCode == "0") {
         let deli=JSON.parse(data.ext)
+        // console.log(deli)
+        this.version = deli.version // 信息版本号
         // 基本信息
         let supplierrInfo = deli.supplierRegisterInfo
+        let districtValue = []
+        districtValue.push(supplierrInfo.province)
+        districtValue.push(supplierrInfo.city)
+        districtValue.push(supplierrInfo.area)
+        let val = this.getValue(districtValue,this.options)
+        let AddValue = []
+        for (let i = 0; i < val.length; i++) {
+          AddValue.push(val[i].value)
+        }
+        this.district_code = AddValue // 城市选择器代码
         this.companyName= supplierrInfo.companyName // 企业名称
         this.creditCode= supplierrInfo.creditCode // 社会信用代码
         this.address= supplierrInfo.address // 办公地址
-        this.district= '' // 区域
+        this.district= districtValue // 区域
         this.companyLegal= supplierrInfo.companyLegal // 公司法人
         this.companyTime= supplierrInfo.companyTime // 成立时间
         this.companyTel= supplierrInfo.companyTel // 公司电话
-        this.businessLicensePath= '' // 企业工商执照附件上传后的路径
+        if (supplierrInfo.businessLicensePath != '') {
+          this.dialogImageShow = true // 显示已上传的营业执照
+          this.id_img_show = true // 禁用营业执照上传功能
+          this.dialogImageUrl = '/pms/upload' + supplierrInfo.businessLicensePath // 营业执照图片显示路径
+          this.businessLicensePath = supplierrInfo.businessLicensePath // 营业执照图片上传路径
+        }
         // 服务信息
         this.serviceType= supplierrInfo.serviceType // 服务类型
         this.serviceCustomer= supplierrInfo.serviceCustomer // 服务客户
@@ -307,8 +342,8 @@ export default {
         let list = supplierrInfo.supplierContactInfoList
         this.linkman_list= list
         // 开票信息
-        this.invoiceBankName= supplierrInfo.invoiceBank // 开户行名称
-        this.invoiceBank= supplierrInfo.invoiceAccount // 开票信息银行卡号
+        this.invoiceAccount= supplierrInfo.invoiceAccount // 开户行名称
+        this.invoiceBank= supplierrInfo.invoiceBank // 开票信息银行卡号
         this.invoiceReceiveUser= supplierrInfo.invoiceReceiveUser // 收件人
         this.invoiceReceiveAddr= supplierrInfo.invoiceReceiveAddr // 收件地址
         this.invoiceReceiveContact= supplierrInfo.invoiceReceiveContact // 收件人联系电话
@@ -316,14 +351,26 @@ export default {
         this.bankAddrInfo= supplierrInfo.bankAddrInfo // 银行地址
         this.bankName= supplierrInfo.bankName // 银行名称
         this.bankAccount= supplierrInfo.bankAccount // 银行卡号
+        // 资质文件
+        this.odleSupplierRegisterFileList = supplierrInfo.supplierRegisterFileList
       }
     },
     // 获取供应商信息 end
     // 城市选择器
+      // 通过代码获取选择城市名称
     getCascaderObj(val,opt) {
       return val.map(function (value, index, array) {
         for (var itm of opt) {
           if (itm.value == value) { opt = itm.children; return itm; }
+        }
+        return null
+      })
+    },
+      // 通过城市名获取代码
+    getValue(add,opt){
+      return add.map(function (value, index, array) {
+        for (var itm of opt) {
+          if (itm.label == value) { opt = itm.children; return itm; }
         }
         return null
       })
@@ -333,11 +380,9 @@ export default {
       let add = this.getCascaderObj(e, this.options)
       let Addtest = []
       for (let i = 0; i < add.length; i++) {
-        // const element = array[i];
         Addtest.push(add[i].label)
       }
       this.district = Addtest
-      // console.log(this.district)
     },
     // 城市选择器切换
     handleChange(val) {
@@ -363,14 +408,27 @@ export default {
     domUploadSuccess(res, file, fileList) {
       let data = res
       if (data.errorCode == 0) {
-        let oldData = this.supplierRegisterFileList
-        let resData = {
-          fileName: file.name,
-          filePath: res.ext.path
+        let list = []
+        for (let i = 0; i < fileList.length; i++) {
+          let listData = {
+            fileName: fileList[i].name,
+            filePath: fileList[i].response.ext.path
+          }
+          list.push(listData)
         }
-        oldData.push(resData) // 将返回的数据添加到对象中
-        this.supplierRegisterFileList = oldData
+        this.supplierRegisterFileList = list
       }
+    },
+    domUploadRemove(file, fileList){
+      let list = []
+      for (let i = 0; i < fileList.length; i++) {
+        let listData = {
+          fileName: fileList[i].name,
+          filePath: fileList[i].response.ext.path
+        }
+        list.push(listData)
+      }
+      this.supplierRegisterFileList = list
     },
     // 添加联系人
     add_linkman() {
@@ -386,7 +444,11 @@ export default {
     },
     // 上传信息 start
     update() {
+      let supplierRegisterFileList = this.supplierRegisterFileList
+      let odleSupplierRegisterFileList = this.odleSupplierRegisterFileList
+      supplierRegisterFileList=supplierRegisterFileList.concat(odleSupplierRegisterFileList)
       let supplier = {
+        version: this.version, // 信息版本
         phoneNum: this.$store.state.phone, // 供应商电话
         supplierRegisterInfo: {
           address: this.address, // 办公地址
@@ -402,17 +464,17 @@ export default {
           companyTel: this.companyTel, // 公司电话
           companyTime: this.companyTime, // 公司成立时间
           creditCode: this.creditCode, // 社会信用代码
-          invoiceAccount: this.invoiceBank, // 发票单号
+          invoiceAccount: this.invoiceAccount, // 发票单号/开票信息银行名称
           invoiceBank: this.invoiceBank, // 开票信息银行卡号
           invoiceReceiveAddr: this.invoiceReceiveAddr, // 收件地址
           invoiceReceiveContact: this.invoiceReceiveContact, // 收件人联系电话
           invoiceReceiveUser: this.invoiceReceiveUser, // 收件人
-          province: this.district[1], // 省份
+          province: this.district[0], // 省份
           registerInfoId: '', // 注册ID
           serviceCustomer: this.serviceCustomer, // 服务客户
           serviceType: this.serviceType, // 服务类型
           supplierContactInfoList: this.linkman_list, // 联系人信息列表
-          supplierRegisterFileList: this.supplierRegisterFileList // 上传文件列表
+          supplierRegisterFileList: supplierRegisterFileList // 上传文件列表
         },
         type: 1
       }
@@ -426,13 +488,12 @@ export default {
         .then(this.updateSuss)
     },
     updateSuss(res) {
-      console.log(res)
+      // console.log(res)
       let data = res.data
       if (data.errorCode == '0') {
         this.$alert(data.msg, '提示', {
           confirmButtonText: '确定',
           callback: action => {
-            this.loginState = true
             this.$router.push({ path:'/corporation_datum' })
           }
         })
@@ -440,7 +501,6 @@ export default {
         this.$alert(data.msg, '提示', {
           confirmButtonText: '确定',
           callback: action => {
-            this.loginState = true
           }
         })
       }
@@ -461,6 +521,100 @@ export default {
         })
         .catch(action => {
         });
+    },
+    // 删除营业执照
+    deleDialog(){
+      this.$confirm('是否删除营业执照？', '确认信息', {
+        distinguishCancelAndClose: true,
+        cancelButtonText: '取消',
+        confirmButtonText: '删除'
+      })
+        .then(() => {
+          // 点击删除
+          // console.log("删除营业执照")
+          let filePath = this.businessLicensePath
+          let phone = this.$store.state.phone
+          let version = this.version
+          // console.log(filePath)
+          // console.log(phone)
+          // console.log(version)
+          // 发送删除请求
+          this.$axios
+            .post(
+              '/pms//insunSupplierRegisterInfo/delFileByPath'
+              + '?filePath=' + filePath
+              + '&phone=' + phone
+              + '&version=' + version
+            )
+            .then(this.deleDialogSuss)
+        })
+        .catch(action => {
+          // 点击取消
+        });
+    },
+    deleDialogSuss(res) {
+      let data = res.data
+      // console.log(data)
+      if (data.errorCode == '0') {
+        this.$alert(data.msg, '提示', {
+          confirmButtonText: '确定',
+          callback: action => {
+          }
+        })
+        // 信息更新
+        this.id_img_show = false
+        this.getSupplierInfo()
+      }else if(data.errorCode == '-1') {
+        this.$alert(data.msg, '提示', {
+          confirmButtonText: '确定',
+          callback: action => {
+          }
+        })
+      }
+    },
+    // 删除资质文件
+    deleFile(filePath) {
+      this.$confirm('是否删除资质文件？', '确认信息', {
+        distinguishCancelAndClose: true,
+        cancelButtonText: '取消',
+        confirmButtonText: '删除'
+      })
+        .then(() => {
+          // 点击删除
+          let phone = this.$store.state.phone
+          let version = this.version
+          // 发送删除请求
+          this.$axios
+            .post(
+              '/pms//insunSupplierRegisterInfo/delFileByPath'
+              + '?filePath=' + filePath
+              + '&phone=' + phone
+              + '&version=' + version
+            )
+            .then(this.deleFileSuss)
+        })
+        .catch(action => {
+          // 点击取消
+        });
+    },
+    deleFileSuss(res) {
+      let data = res.data
+      // console.log(data)
+      if (data.errorCode == '0') {
+        this.$alert(data.msg, '提示', {
+          confirmButtonText: '确定',
+          callback: action => {
+          }
+        })
+        // 信息更新
+        this.getSupplierInfo()
+      }else if(data.errorCode == '-1') {
+        this.$alert(data.msg, '提示', {
+          confirmButtonText: '确定',
+          callback: action => {
+          }
+        })
+      }
     }
   },
   // 钩子函数
@@ -531,6 +685,21 @@ export default {
 #corporation_update .but {
   padding: 0;
 }
+#corporation_update .basic .dialog{
+  width: 148px;
+  height: 148px;
+  position: relative;
+  border-radius: 9px;
+  overflow: hidden;
+}
+#corporation_update .basic .dialog .dialog_del{
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+#corporation_update .basic .dialog:hover .dialog_del{
+  background: white;
+}
 /* 联系人列表样式 start */
 #corporation_update .linkman .linkman_list {
   padding: 0;
@@ -545,4 +714,43 @@ export default {
   border-style: dashed;
 }
 /* 联系人列表样式 end */
+/* 资质文件样式start */
+#corporation_update .certificates .certificates_list{
+  height: 54px;
+  padding: 0;
+}
+#corporation_update .certificates_list>div{
+  width: 360px;
+  height: 25px;
+  line-height: 25px;
+  box-sizing: border-box;
+  margin-left: 5em;
+  padding: 0 4px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+}
+#corporation_update .certificates_list>div:hover{
+  background-color: #F5F7FA;
+}
+#corporation_update .certificates_list a{
+  box-sizing: border-box;
+  width: 320px;
+  height: 25px;
+  line-height: 25px;
+  overflow: hidden;
+  /* padding-left: 4px; */
+  color: #606266;
+}
+#corporation_update .certificates_list a:hover{
+  color: #409EFF;
+}
+#corporation_update .certificates_list .el-icon-document {
+    height: 100%;
+    margin-right: 7px;
+    color: #909399;
+    line-height: inherit;
+}
+/* 资质文件样式start */
 </style>

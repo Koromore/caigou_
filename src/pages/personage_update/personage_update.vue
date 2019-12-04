@@ -44,9 +44,8 @@
           <div>区域：</div>
           <el-cascader
             :options="options"
-            v-model="district"
+            v-model="district_code"
             ref="cascaderAddr"
-            change-on-select
             filterable
             @change="handleChangeCity"
             placeholder="请选择办公地区"
@@ -96,6 +95,10 @@
         <!-- 证件上传start -->
         <el-col :span="24" class="content_text">
           <div>上传证件：</div>
+          <div v-show="dialogImageShow" class="dialog">
+            <img :src="idCardImageUrl" alt="" srcset="" width="148" height="148">
+            <i class="el-icon-delete dialog_del" @click="deleDialog"></i>
+          </div>
           <el-upload
             :action="uploadApi"
             list-type="picture-card"
@@ -113,16 +116,26 @@
         <!-- 证件上传end -->
         <!-- 其他附件上传start -->
         <el-col :span="24" class="content_text">
+          <div>其它附件：</div>
           <el-upload
             class="upload-demo"
             :action="uploadApi"
             :on-change="handleChangeUpload"
             :file-list="fileList"
             :on-success="domUploadSuccess"
+            :on-remove="domUploadRemove"
           >
             <el-button size="small" type="primary">点击上传</el-button>
-            <div slot="tip" class="el-upload__tip">支持扩展名：.rar .zip .doc .docx .pdf .jpg...不超过500kb</div>
+            <div slot="tip" class="el-upload__tip">支持扩展名：.rar .zip .doc .docx .pdf .jpg...</div>
           </el-upload>
+          <!-- 已上传资质文件start -->
+          <el-col class="certificates_list" :span="24">
+            <div v-for="item in odleSupplierRegisterFileList" :key="item.index">
+              <a href="javascript:;"><i class="el-icon-document"></i>{{item.fileName}}</a>
+              <i class="el-icon-close" @click="deleFile(item.filePath)"></i>
+            </div>
+          </el-col>
+          <!-- 已上传资质文件end -->
         </el-col>
         <!-- 其他附件上传end -->
         <el-col :span="24" style="height:54px;"></el-col>
@@ -148,11 +161,13 @@ export default {
       // 上传API
       uploadApi: '', //
       // 信息填写
+      version: '', // 信息版本号
       // 基本信息
       name: '', // 姓名
       telephone: '', // 电话
       wxqq: '', // 微信QQ
       site: '', // 地址
+      district_code: '', // 区域代码
       district: '', // 区域
       mail: '', // 邮箱
       // 服务信息
@@ -165,17 +180,20 @@ export default {
       // 证件上传
       dialogImageUrl: '',
       dialogVisible: false,
+      dialogImageShow: false, // 是否显示身份证图片
       idCardFront: '', // 身份证图片名称
       idCardFrontPath: '', // 身份证图片路径
+      idCardImageUrl: '', // 获取到的身份证图片路径
       // 其他附件上传 列表显示
       fileList: [],
       supplierRegisterFileList: [], // 其他附件列表
+      odleSupplierRegisterFileList: [], // 获取到的其他附件
       // 城市选择器数据
       options: cities,
       regionData: regionData, // 城市选择器数据
       selectedOptions: [],
 
-      id_img_show: false // 是否显示上传组件
+      id_img_show: false // 是否禁用身份证上传组件
     }
   },
   // 方法
@@ -198,27 +216,47 @@ export default {
       let data = res.data
       if (data.errorCode == "0") {
         let deli=JSON.parse(data.ext)
-        console.log(deli)
+        // console.log(deli)
+        this.version = deli.version // 信息版本号
         // 基本信息
         let supplier = deli.supplierRegisterInfo.supplierContactInfoList[0]
         let supplierInfo = deli.supplierRegisterInfo
-        this.name= supplier.name, // 姓名
-        this.telephone= supplier.tel, // 电话
-        this.wxqq= supplier.wechatOrQQ, // 微信QQ
-        this.site= supplierInfo.address, // 地址
-        this.district= '', // 区域
-        this.mail= supplier.mail, // 邮箱
+        let districtValue = []
+        districtValue.push(supplierInfo.province)
+        districtValue.push(supplierInfo.city)
+        districtValue.push(supplierInfo.area)
+        let val = this.getValue(districtValue,this.options)
+        let AddValue = []
+        for (let i = 0; i < val.length; i++) {
+          AddValue.push(val[i].value)
+        }
+        this.district_code= AddValue // 区域代码
+        this.name= supplier.name // 姓名
+        this.telephone= supplier.tel // 电话
+        this.wxqq= supplier.wechatOrQQ // 微信QQ
+        this.site= supplierInfo.address // 地址
+        this.district= districtValue // 区域
+        this.mail= supplier.mail // 邮箱
         // 服务信息
-        this.serviceType= supplierInfo.serviceType, // 服务类型
-        this.serviceCustomer= supplierInfo.serviceCustomer, // 服务客户
+        this.serviceType= supplierInfo.serviceType // 服务类型
+        this.serviceCustomer= supplierInfo.serviceCustomer // 服务客户
         // 资质信息
-        this.bankName= supplierInfo.bankName, // 银行名称
-        this.bankAccount= supplierInfo.bankAccount, // 银行卡号
+        this.bankName= supplierInfo.bankName // 银行名称
+        this.bankAccount= supplierInfo.bankAccount // 银行卡号
         this.idCard= supplierInfo.idCard // 身份证号
+        if (supplierInfo.idCardFrontPath != '') {
+          this.dialogImageShow = true // 显示已上传的营业执照
+          this.id_img_show = true // 禁用证件照上传功能
+          this.idCardImageUrl = '/pms/upload' + supplierInfo.idCardFrontPath // 证件照图片显示路径
+          this.idCardFrontPath = supplierInfo.idCardFrontPath // 证件照照图片上传路径
+        }
+        // 其他附件
+        this.odleSupplierRegisterFileList = supplierInfo.supplierRegisterFileList
       }
     },
     // 获取供应商信息 end
     // 城市选择器
+      // 通过代码获取选择城市名称
     getCascaderObj(val,opt) {
       return val.map(function (value, index, array) {
         for (var itm of opt) {
@@ -227,14 +265,22 @@ export default {
         return null
       })
     },
+      // 通过城市名获取代码
+    getValue(add,opt){
+      return add.map(function (value, index, array) {
+        for (var itm of opt) {
+          if (itm.label == value) { opt = itm.children; return itm; }
+        }
+        return null
+      })
+    },
     handleChangeCity(thsAreaCode) {
       // 选择区域
       // this.district = this.$refs.cascaderAddr.getCheckedNodes()[0].pathLabels
       // 选择区域
-      let add = this.getCascaderObj(e, this.options)
+      let add = this.getCascaderObj(thsAreaCode, this.options)
       let Addtest = []
       for (let i = 0; i < add.length; i++) {
-        // const element = array[i];
         Addtest.push(add[i].label)
       }
       this.district = Addtest
@@ -256,6 +302,8 @@ export default {
         this.id_img_show = true
         this.idCardFront = file.name
         this.idCardFrontPath = data.ext.path
+        // console.log(this.idCardFront)
+        // console.log(this.idCardFrontPath)
       }
     },
     // 证件上传 end
@@ -265,22 +313,39 @@ export default {
       this.fileList = fileList.slice(-3)
     },
     // 回调
-    domUploadSuccess(res,file) {
+    domUploadSuccess(res,file,fileList) {
       if (res.errorCode == 0) {
-        let oldData = this.supplierRegisterFileList
-        let resData = {
-          fileName: file.name,
-          filePath: res.ext.path
+        let list = []
+        for (let i = 0; i < fileList.length; i++) {
+          let listData = {
+            fileName: fileList[i].name,
+            filePath: fileList[i].response.ext.path
+          }
+          list.push(listData)
         }
-        oldData.push(resData) // 将返回的数据添加到对象中
-        this.supplierRegisterFileList = oldData
+        this.supplierRegisterFileList = list
       }
+    },
+    domUploadRemove(file, fileList) {
+      let list = []
+      for (let i = 0; i < fileList.length; i++) {
+        let listData = {
+          fileName: fileList[i].name,
+          filePath: fileList[i].response.ext.path
+        }
+        list.push(listData)
+      }
+      this.supplierRegisterFileList = list
     },
     // 其它附件上传 end
 
     // 提交 start
     update() {
+      let supplierRegisterFileList = this.supplierRegisterFileList
+      let odleSupplierRegisterFileList = this.odleSupplierRegisterFileList
+      supplierRegisterFileList=supplierRegisterFileList.concat(odleSupplierRegisterFileList)
       let supplier = {
+        version: this.version, // 信息版本
         phoneNum: this.$store.state.phone, // 供应商电话
         supplierRegisterInfo: {
           address: this.site, // 地址
@@ -305,7 +370,7 @@ export default {
               wechatOrQQ: this.wxqq // 微信或QQ
             }
           ],
-          supplierRegisterFileList:this.supplierRegisterFileList
+          supplierRegisterFileList:supplierRegisterFileList
         },
         type: 0
       }
@@ -379,8 +444,101 @@ export default {
           message: res.data.msg
         })
       }
-    }
+    },
     // 上传信息 end
+    // 删除身份证
+    deleDialog(){
+      this.$confirm('是否删除证件照？', '确认信息', {
+        distinguishCancelAndClose: true,
+        cancelButtonText: '取消',
+        confirmButtonText: '删除'
+      })
+        .then(() => {
+          // 点击删除
+          // console.log("删除营业执照")
+          let filePath = this.idCardFrontPath
+          let phone = this.$store.state.phone
+          let version = this.version
+          // console.log(filePath)
+          // console.log(phone)
+          // console.log(version)
+          // 发送删除请求
+          this.$axios
+            .post(
+              '/pms//insunSupplierRegisterInfo/delFileByPath'
+              + '?filePath=' + filePath
+              + '&phone=' + phone
+              + '&version=' + version
+            )
+            .then(this.deleDialogSuss)
+        })
+        .catch(action => {
+          // 点击取消
+        });
+    },
+    deleDialogSuss(res) {
+      let data = res.data
+      if (data.errorCode == '0') {
+        this.$alert(data.msg, '提示', {
+          confirmButtonText: '确定',
+          callback: action => {
+          }
+        })
+        // 信息更新
+        this.id_img_show = false
+        this.getSupplierInfo()
+      }else if(data.errorCode == '-1') {
+        this.$alert(data.msg, '提示', {
+          confirmButtonText: '确定',
+          callback: action => {
+          }
+        })
+      }
+    },
+    // 删除资质文件
+    deleFile(filePath) {
+      this.$confirm('是否删除资质文件？', '确认信息', {
+        distinguishCancelAndClose: true,
+        cancelButtonText: '取消',
+        confirmButtonText: '删除'
+      })
+        .then(() => {
+          // 点击删除
+          let phone = this.$store.state.phone
+          let version = this.version
+          // 发送删除请求
+          this.$axios
+            .post(
+              '/pms//insunSupplierRegisterInfo/delFileByPath'
+              + '?filePath=' + filePath
+              + '&phone=' + phone
+              + '&version=' + version
+            )
+            .then(this.deleFileSuss)
+        })
+        .catch(action => {
+          // 点击取消
+        });
+    },
+    deleFileSuss(res) {
+      let data = res.data
+      // console.log(data)
+      if (data.errorCode == '0') {
+        this.$alert(data.msg, '提示', {
+          confirmButtonText: '确定',
+          callback: action => {
+          }
+        })
+        // 信息更新
+        this.getSupplierInfo()
+      }else if(data.errorCode == '-1') {
+        this.$alert(data.msg, '提示', {
+          confirmButtonText: '确定',
+          callback: action => {
+          }
+        })
+      }
+    }
   },
   // 钩子函数
   mounted() {
@@ -450,4 +608,60 @@ export default {
 #personage_update .but {
   padding: 0;
 }
+/* 证件显示样式start */
+#personage_update .dialog{
+  width: 148px;
+  height: 148px;
+  position: relative;
+  border-radius: 9px;
+  overflow: hidden;
+}
+#personage_update .dialog .dialog_del{
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+#personage_update .dialog:hover .dialog_del{
+  background: white;
+}
+/* 证件显示样式end */
+/* 资质文件样式start */
+#personage_update .certificates_list{
+  height: 54px;
+  padding: 0;
+}
+#personage_update .certificates_list>div{
+  width: 360px;
+  height: 25px;
+  line-height: 25px;
+  box-sizing: border-box;
+  margin-left: 5em;
+  padding: 0 4px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+}
+#personage_update .certificates_list>div:hover{
+  background-color: #F5F7FA;
+}
+#personage_update .certificates_list a{
+  box-sizing: border-box;
+  width: 320px;
+  height: 25px;
+  line-height: 25px;
+  overflow: hidden;
+  /* padding-left: 4px; */
+  color: #606266;
+}
+#personage_update .certificates_list a:hover{
+  color: #409EFF;
+}
+#personage_update .certificates_list .el-icon-document {
+    height: 100%;
+    margin-right: 7px;
+    color: #909399;
+    line-height: inherit;
+}
+/* 资质文件样式start */
 </style>

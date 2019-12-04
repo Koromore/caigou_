@@ -14,7 +14,6 @@ export function preview(path){
     // 新开页面跳转文档预览（需要域名）
     let newPage = window.open() // 防止浏览器拦截
     newPage.location.href = office + url
-    // console.log(office + 'http://pms.guoxinad.com.cn/upload' + path)
   }else if(format == 'image'){
     // 图片预览
     this.dialogVisible = true;
@@ -23,6 +22,6 @@ export function preview(path){
   }else if(format == 'pdf'){
     // 新开页面跳转pdf文档预览
     let newPage = window.open() // 防止浏览器拦截
-    newPage.location.href = office + url
+    newPage.location.href = url
   }
 }
