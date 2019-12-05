@@ -168,7 +168,7 @@ export default {
     downLoadDoc(path){
       let a = document.createElement('a');
         a.download = '';
-        a.setAttribute('href',path);
+        a.setAttribute('href','/pms/upload'+path);
         a.click();
     }
     // 获取供应商信息 end

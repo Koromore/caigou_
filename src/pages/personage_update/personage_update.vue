@@ -249,6 +249,11 @@ export default {
           this.id_img_show = true // 禁用证件照上传功能
           this.idCardImageUrl = '/pms/upload' + supplierInfo.idCardFrontPath // 证件照图片显示路径
           this.idCardFrontPath = supplierInfo.idCardFrontPath // 证件照照图片上传路径
+        }else{
+          this.dialogImageShow = false // 显示已上传的营业执照
+          this.id_img_show = false // 禁用证件照上传功能
+          this.idCardImageUrl = '' // 证件照图片显示路径
+          // this.idCardFrontPath = '' // 证件照照图片上传路径
         }
         // 其他附件
         this.odleSupplierRegisterFileList = supplierInfo.supplierRegisterFileList
@@ -487,6 +492,7 @@ export default {
         })
         // 信息更新
         this.id_img_show = false
+        this.idCardFrontPath = ''
         this.getSupplierInfo()
       }else if(data.errorCode == '-1') {
         this.$alert(data.msg, '提示', {

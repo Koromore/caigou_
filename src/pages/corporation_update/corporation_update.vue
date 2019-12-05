@@ -334,6 +334,11 @@ export default {
           this.id_img_show = true // 禁用营业执照上传功能
           this.dialogImageUrl = '/pms/upload' + supplierrInfo.businessLicensePath // 营业执照图片显示路径
           this.businessLicensePath = supplierrInfo.businessLicensePath // 营业执照图片上传路径
+        }else{
+          this.dialogImageShow = false // 显示已上传的营业执照
+          this.id_img_show = false // 禁用营业执照上传功能
+          this.dialogImageUrl = '' // 营业执照图片显示路径
+          // this.businessLicensePath = '' // 营业执照图片上传路径
         }
         // 服务信息
         this.serviceType= supplierrInfo.serviceType // 服务类型
@@ -564,6 +569,7 @@ export default {
         })
         // 信息更新
         this.id_img_show = false
+        this.businessLicensePath = ''
         this.getSupplierInfo()
       }else if(data.errorCode == '-1') {
         this.$alert(data.msg, '提示', {
