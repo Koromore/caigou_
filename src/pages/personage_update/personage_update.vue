@@ -231,7 +231,7 @@ export default {
           AddValue.push(val[i].value)
         }
         this.district_code= AddValue // 区域代码
-        this.name= supplier.name // 姓名
+        this.name= deli.supplierName // 姓名
         this.telephone= supplier.tel // 电话
         this.wxqq= supplier.wechatOrQQ // 微信QQ
         this.site= supplierInfo.address // 地址
@@ -244,13 +244,13 @@ export default {
         this.bankName= supplierInfo.bankName // 银行名称
         this.bankAccount= supplierInfo.bankAccount // 银行卡号
         this.idCard= supplierInfo.idCard // 身份证号
-        if (supplierInfo.idCardFrontPath != '') {
-          this.dialogImageShow = true // 显示已上传的营业执照
+        if (supplierInfo.idCardFrontPath) {
+          this.dialogImageShow = true // 显示已上传的证件照
           this.id_img_show = true // 禁用证件照上传功能
           this.idCardImageUrl = '/pms/upload' + supplierInfo.idCardFrontPath // 证件照图片显示路径
           this.idCardFrontPath = supplierInfo.idCardFrontPath // 证件照照图片上传路径
         }else{
-          this.dialogImageShow = false // 显示已上传的营业执照
+          this.dialogImageShow = false // 显示已上传的证件照
           this.id_img_show = false // 禁用证件照上传功能
           this.idCardImageUrl = '' // 证件照图片显示路径
           // this.idCardFrontPath = '' // 证件照照图片上传路径

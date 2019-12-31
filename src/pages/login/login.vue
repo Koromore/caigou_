@@ -19,10 +19,22 @@
                 prefix-icon="el-icon-mobile"
                 @blur="test"
               ></el-input>
-              <div class="hint"  v-if=login_but_show>您的手机号已注册请直接登陆</div>
-              <div class="hint" v-if=register_but_show>您的手机号未注册请注册后登陆</div>
+              <div class="hint"  v-if='hit_show'>{{hint}}</div>
             </el-form-item>
             <!-- 手机号输入框 end -->
+
+            <!-- 激活码输入框 start -->
+            <el-form-item class="activationCode" v-if=activationCode_show>
+              <el-input
+                autocomplete="off"
+                type="verification"
+                v-model="form.activationCode"
+                placeholder="激活码"
+                prefix-icon="el-icon-s-opportunity"
+                @blur="verify_activationCode"
+              ></el-input>
+            </el-form-item>
+            <!-- 激活码输入框 end -->
 
             <!-- 手机验证码输入框 start -->
             <el-form-item class="verification" v-if=smsCodeBox>
@@ -40,8 +52,6 @@
             <el-button plain class="getv" @click="getSmsCode" v-if=smsCodeBox :disabled="isDisabled">
               {{buttonName}}
             </el-button>
-            <!-- <el-button @click="sendMsg" type="" :disabled="isDisabled">{{buttonName}}</el-button> -->
-
             <!-- 获取手机验证码 end -->
 
             <!-- 图片验证码输入框 start -->
@@ -82,7 +92,7 @@
             <!-- img验证码 end -->
 
             <!-- 选择账号类型 start -->
-            <div style="width: 100%;height: 36px;" v-if=register_but_show>
+            <div style="width: 100%;height: 36px;" v-if=type_but_show>
               <el-radio v-model="form.type" label="0">个人</el-radio>
               <el-radio v-model="form.type" label="1">公司</el-radio>
             </div>
@@ -124,40 +134,42 @@ export default {
       form: {
         phone: '', // 手机号
         smsCode: '', // 验证码
-        type: '0', // 账号类型
-        imgCode: ''
+        type: '', // 账号类型
+        imgCode: '', // 图形码
+        activationCode: '' // 激活码
       },
+      hint: "", // 提示信息
+      hit_show: false, // 提示信息是否显示
       loginState: true, // 避免多次点击
       registerState: true, // 避免多次点击
       winHeight: '', // 获取显示高度
-      verify_code: '', // 验证手机号是否被注册的返回值
       smsCodeBox: true, // 短信验证码显示与否
       verify_but_show: false, // 验证按钮显示与否
       login_but_show: false, // 登录按钮显示与否
       register_but_show: false, // 注册按钮显示与否
+      type_but_show: false, // 账号类型选择显示与否
       getImgCodeBox: false, // 图形验证码显示与否
       imgCodeButShow: true, // 获取图片验证码按钮显示与否
       imgCodeShow: false, // 获取图片验证码显示与否
       loading: false, // 加载图片验证码动画
       buttonName: "发送短信", // 获取短信验证码按钮文字
-			isDisabled: false, // 获取短信验证码按钮是否禁用
+      isDisabled: false, // 获取短信验证码按钮是否禁用
+      activationCode_show: false, // 激活码输入框
 			time: 60 // 获取短信验证码按钮禁用时间
     }
   },
-  watch: {
-    verify_code () {
-      this.verify_code_if()
-    }
-  },
+  // 监听属性
+  watch: {},
+  // 事件方法
   methods: {
     orderHight() {
       var winHeight = window.innerHeight - 86
       this.winHeight = 'height:' + winHeight + 'px;'
     },
+    // 验证手机号是否已注册 start
     test(){
       this.verify()
     },
-    // 验证手机号是否已注册 start
     verify(){
       let phone_text = /^1[34578]\d{9}$/
       if (this.form.phone === '' || !phone_text.test(this.form.phone)) {
@@ -182,21 +194,106 @@ export default {
     },
     verifySuss(res){
       let data = res.data
-      this.verify_code = data.ext
+      // this.verify_code = data.ext
+      if (data.ext == 1) {
+        this.login_but_show = true
+        this.register_but_show = false
+        this.type_but_show = false
+        this.activationCode_show = false
+        this.hit_show = true
+        this.hint = "您的手机号已注册请直接登陆"
+      }else if(data.ext == 0){
+        this.ifActivation()
+      }
     },
     // 验证手机号是否已注册 end
 
-    // 通过返回值显示注册/登陆 start
-    verify_code_if(){
-      if (this.verify_code == 1) {
+    // 选择是否拥有激活码 start
+    ifActivation() {
+      this.$confirm('手机号未注册，是否拥有激活码？', '确认信息', {
+        distinguishCancelAndClose: true,
+        showClose: false,
+        confirmButtonText: '有',
+        cancelButtonText: '没有'
+      })
+      .then(() => {
+        this.$message({
+          type: 'info',
+          message: '请输入激活码登陆'
+        })
         this.login_but_show = true
         this.register_but_show = false
-      }else if(this.verify_code == 0){
+        this.type_but_show = true
+        this.form.type = '0'
+        this.activationCode_show = true
+        this.isDisabled = true
+        this.hit_show = true
+        this.hint = "请输入激活码登陆"
+      })
+      .catch(action => {
+        this.$message({
+          type: 'info',
+          message: '请注册登陆'
+        })
         this.login_but_show = false
         this.register_but_show = true
+        this.type_but_show = true
+        this.form.type = '0'
+        this.activationCode_show = false
+        this.hit_show = true
+        this.hint = "您的手机号未注册请注册后登陆"
+      });
+    },
+    // 选择是否拥有激活码 end
+
+    // 验证激活码是否存在 start
+    verify_activationCode(){
+      this.activationCode_m()
+    },
+    activationCode_m(){
+      if (this.form.activationCode === '') {
+        this.$alert('激活码不能为空！', '提示', {
+          confirmButtonText: '确定',
+          callback: action => {
+            this.loginState = true
+          }
+        })
+        return false
+      } else {
+        // 获取验证码
+        let params = {}
+        params.activationCode = this.form.activationCode
+        // console.log(params)
+        this.$axios
+          .post(
+            '/pms/insunSupplierRegisterInfo/judgeSerialCodeValid' + '?serialCode=' +params.activationCode
+          )
+          .then(this.activationCodeSuss)
       }
     },
-    // 通过返回值显示注册/登陆 end
+    activationCodeSuss(res){
+      let data = res.data
+      console.log(res)
+      console.log(data)
+      if (data.ext == 1) {
+        this.$alert('激活码可用！', '提示', {
+          confirmButtonText: '确定',
+          callback: action => {
+            this.loginState = true
+          }
+        })
+        this.isDisabled = false // 不禁用短信发送按钮
+      }else if(data.ext == 0){
+        this.$alert('激活码不可用！', '提示', {
+          confirmButtonText: '确定',
+          callback: action => {
+            this.loginState = true
+          }
+        })
+        return false
+      }
+    },
+    // 验证激活码是否存在 end
 
     // 获取短信验证码 start
     getSmsCode(){
@@ -215,23 +312,25 @@ export default {
         params.phone = this.form.phone
         if (this.register_but_show == true) {
           params.type = "register"
-        }else if(this.login_but_show == true){
+        }else if(this.login_but_show == true) {
           params.type = "login"
         }
         params.imgCode = this.form.imgCode
+        params.activationCode = this.form.activationCode
+        
         this.$axios
           .post(
             '/pms/smsRestService/getShortMsg'
             + '?phone=' + params.phone
             + '&type=' + params.type
             + '&imgCode=' + params.imgCode
+            + '&serialCode=' + params.activationCode
           )
           .then(this.getSmsCodeSuss)
       }
     },
     getSmsCodeSuss(res) {
       let data = res.data
-
         this.$message({
           showClose: true,
           message: res.data.msg
@@ -397,11 +496,15 @@ export default {
       params.phone = this.form.phone
       params.shortMsgCode = this.form.smsCode
       params.imgCode = this.form.imgCode
+      params.activationCode = this.form.activationCode
+      params.type = this.form.type
       this.$axios
         .post('/pms/insunSupplierRegisterInfo/login'
         + '?phone=' + params.phone // 手机号
         + '&shortMsgCode=' + params.shortMsgCode // 短信验证码
-        + '&imgCode=' + params.imgCode) // 图形验证码
+        + '&imgCode=' + params.imgCode // 图形验证码
+        + '&serialCode=' + params.activationCode // 激活码
+        + '&type=' + params.type)
         .then(this.loginSuccess)
     },
     loginSuccess(res) {
@@ -427,10 +530,10 @@ export default {
           }
         })
       }
-      
     },
     // 登陆 end
   },
+  // 实例挂载完成生命周期函数
   mounted() {
     this.orderHight()
   }

@@ -308,7 +308,7 @@ export default {
       let data = res.data
       if (data.errorCode == "0") {
         let deli=JSON.parse(data.ext)
-        // console.log(deli)
+        console.log(deli)
         this.version = deli.version // 信息版本号
         // 基本信息
         let supplierrInfo = deli.supplierRegisterInfo
@@ -318,18 +318,20 @@ export default {
         districtValue.push(supplierrInfo.area)
         let val = this.getValue(districtValue,this.options)
         let AddValue = []
-        for (let i = 0; i < val.length; i++) {
-          AddValue.push(val[i].value)
-        }
+        if (val[0] != null) {
+          for (let i = 0; i < val.length; i++) {
+            AddValue.push(val[i].value)
+          }
+        }else{}
         this.district_code = AddValue // 城市选择器代码
-        this.companyName= supplierrInfo.companyName // 企业名称
+        this.companyName= deli.supplierName // 企业名称
         this.creditCode= supplierrInfo.creditCode // 社会信用代码
         this.address= supplierrInfo.address // 办公地址
         this.district= districtValue // 区域
         this.companyLegal= supplierrInfo.companyLegal // 公司法人
         this.companyTime= supplierrInfo.companyTime // 成立时间
         this.companyTel= supplierrInfo.companyTel // 公司电话
-        if (supplierrInfo.businessLicensePath != '') {
+        if (supplierrInfo.businessLicensePath) {
           this.dialogImageShow = true // 显示已上传的营业执照
           this.id_img_show = true // 禁用营业执照上传功能
           this.dialogImageUrl = '/pms/upload' + supplierrInfo.businessLicensePath // 营业执照图片显示路径
@@ -345,7 +347,9 @@ export default {
         this.serviceCustomer= supplierrInfo.serviceCustomer // 服务客户
         // 联系人信息
         let list = supplierrInfo.supplierContactInfoList
-        this.linkman_list= list
+        if (list.length != 0) {
+          this.linkman_list= list
+        }
         // 开票信息
         this.invoiceAccount= supplierrInfo.invoiceAccount // 开户行名称
         this.invoiceBank= supplierrInfo.invoiceBank // 开票信息银行卡号

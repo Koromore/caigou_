@@ -155,8 +155,9 @@ export default {
       let data = res.data
       if (data.errorCode == "0") {
         let deli=JSON.parse(data.ext)
+        // console.log(deli)
         this.details = deli
-        this.name = deli.supplierRegisterInfo.supplierContactInfoList[0].name;
+        this.name = deli.supplierName;
         this.tel = deli.supplierRegisterInfo.supplierContactInfoList[0].tel;
         this.mail = deli.supplierRegisterInfo.supplierContactInfoList[0].mail;
         this.wechatOrQQ = deli.supplierRegisterInfo.supplierContactInfoList[0].wechatOrQQ;

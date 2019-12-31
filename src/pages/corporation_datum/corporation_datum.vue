@@ -16,7 +16,7 @@
         <!-- 公司信息循环输出start -->
         <el-col :span="12" class="content_text">
           <div>公司名称：</div>
-          <span>{{supplierRegisterInfo.companyName}}</span>
+          <span>{{deli.supplierName}}</span>
         </el-col>
         <el-col :span="12" class="content_text">
           <div>统一社会信用代码：</div>
