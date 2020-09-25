@@ -74,7 +74,7 @@
       <!-- 服务信息end -->
       <!-- 资质信息start -->
       <el-row>
-        <el-col :span="24" class="content_title">资质信息</el-col>
+        <el-col :span="24" class="content_title">资质信息（包括报价文档、身份证复印件，银行卡复印件等）</el-col>
         <el-col :span="9" class="content_text">
           <span>*</span>
           <div>银行卡开户行名称：</div>
@@ -216,7 +216,6 @@ export default {
       let data = res.data
       if (data.errorCode == "0") {
         let deli=JSON.parse(data.ext)
-        // console.log(deli)
         this.version = deli.version // 信息版本号
         // 基本信息
         let supplier = deli.supplierRegisterInfo.supplierContactInfoList[0]
@@ -224,7 +223,9 @@ export default {
         let districtValue = []
         districtValue.push(supplierInfo.province)
         districtValue.push(supplierInfo.city)
-        districtValue.push(supplierInfo.area)
+        if (supplierInfo.area != '') {
+          districtValue.push(supplierInfo.area)
+        }
         let val = this.getValue(districtValue,this.options)
         let AddValue = []
         for (let i = 0; i < val.length; i++) {
@@ -378,6 +379,10 @@ export default {
           supplierRegisterFileList:supplierRegisterFileList
         },
         type: 0
+      }
+      // console.log(this.district_code)
+      if (this.district_code.length < 3) {
+        supplier.supplierRegisterInfo.area = ''
       }
       // console.log(supplier)
       this.$axios

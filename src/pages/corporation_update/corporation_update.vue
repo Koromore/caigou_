@@ -176,7 +176,7 @@
       <!-- 银行信息end -->
       <!-- 资质信息start -->
       <el-row class="certificates">
-        <el-col :span="24" class="content_title">资质信息</el-col>
+        <el-col :span="24" class="content_title">资质信息（包括报价文档、营业执照，资质，服务客户案例，公司简介等）</el-col>
         <el-col :span="24" class="content_text">
           <div>上传附件：</div>
           <el-upload
@@ -315,7 +315,9 @@ export default {
         let districtValue = []
         districtValue.push(supplierrInfo.province)
         districtValue.push(supplierrInfo.city)
-        districtValue.push(supplierrInfo.area)
+        if (supplierrInfo.area != '') {
+          districtValue.push(supplierrInfo.area)
+        }
         let val = this.getValue(districtValue,this.options)
         let AddValue = []
         if (val[0] != null) {
@@ -486,6 +488,9 @@ export default {
           supplierRegisterFileList: supplierRegisterFileList // 上传文件列表
         },
         type: 1
+      }
+      if (this.district_code.length < 3) {
+        supplier.supplierRegisterInfo.area = ''
       }
       this.$axios
         .post(
